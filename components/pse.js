@@ -20,6 +20,7 @@ export default function Example() {
     jt: true,
     jb: true,
   });
+  const [filterType, setFilterType] = useState("all");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,44 +31,75 @@ export default function Example() {
     fetchData();
   }, []);
 
-  // Handle date selection
+  useEffect(() => {
+    if (filterType !== "all") {
+      setSelectedDates([]);
+    }
+  }, [filterType]);
+
   const handleDateChange = (index, value) => {
     const newSelectedDates = [...selectedDates];
     newSelectedDates[index] = value;
     setSelectedDates(newSelectedDates);
   };
 
-  // Clear date selection
   const clearDateSelection = (index) => {
     const newSelectedDates = [...selectedDates];
-    newSelectedDates[index] = null; // Clear the date
+    newSelectedDates[index] = null;
     setSelectedDates(newSelectedDates);
   };
 
-  // Generate year-month options (from 2022-01 to 2024-07), adding full year options
   const generateDateOptions = () => {
     const options = [];
-    const startYear = 2022;
+    const startYear = 2019;
     const endYear = 2024;
 
-    for (let year = startYear; year <= endYear; year++) {
-      const startMonth = year === startYear ? 1 : 1;
-      const endMonth = year === endYear ? 7 : 12;
-      for (let month = startMonth; month <= endMonth; month++) {
-        const formattedMonth = month < 10 ? `0${month}` : month;
-        options.push(`${year}-${formattedMonth}`);
+    if (filterType === "year") {
+      for (let year = startYear; year <= endYear; year++) {
+        options.push(`${year}`);
       }
-      options.push(`${year}`); // Add full year option at the end of each year
+    } else if (filterType === "month") {
+      for (let year = startYear; year <= endYear; year++) {
+        const endMonth = year === endYear ? 7 : 12;
+        for (let month = 1; month <= endMonth; month++) {
+          const formattedMonth = month < 10 ? `0${month}` : month;
+          options.push(`${year}-${formattedMonth}`);
+        }
+      }
+    } else if (filterType === "week") {
+      for (let year = startYear; year <= endYear; year++) {
+        const endMonth = year === endYear ? 12 : 12;
+        for (let month = 1; month <= endMonth; month++) {
+          const formattedMonth = month < 10 ? `0${month}` : month;
+          for (let week = 1; week <= 5; week++) {
+            options.push(`${year}-${formattedMonth}-${week}`);
+          }
+        }
+      }
     }
     return options;
   };
+  const aggregateMonthData = (month) => {
+    const monthData = data.filter((item) => item.name.startsWith(month));
+    if (monthData.length === 0) return null;
 
-  // Helper function to aggregate data for a full year
+    return monthData.reduce(
+      (acc, item) => {
+        for (const key in item) {
+          if (key !== "name") {
+            acc[key] += item[key];
+          }
+        }
+        return acc;
+      },
+      { name: month, uv: 0, pv: 0, amt: 0, jt: 0, jb: 0 }
+    );
+  };
+
   const aggregateYearData = (year) => {
     const yearData = data.filter((item) => item.name.startsWith(year));
     if (yearData.length === 0) return null;
 
-    // Aggregate the values for the selected year
     return yearData.reduce(
       (acc, item) => {
         for (const key in item) {
@@ -81,54 +113,107 @@ export default function Example() {
     );
   };
 
-  // Filter data based on selected dates
-  const filteredData = selectedDates.length
-    ? selectedDates.flatMap((date) => {
-        if (date && date.length === 4) {
-          // If the selected date is a year, aggregate data for the full year
-          const aggregatedData = aggregateYearData(date);
-          return aggregatedData ? [aggregatedData] : [];
-        }
-        return data.filter((item) => item.name === date);
-      })
-    : data;
+  const filteredData =
+    filterType === "all"
+      ? data
+      : selectedDates.length
+      ? selectedDates.flatMap((date) => {
+          if (date && date.length === 4) {
+            const aggregatedData = aggregateYearData(date);
+            return aggregatedData ? [aggregatedData] : [];
+          } else if (date && date.length === 7) {
+            const aggregatedData = aggregateMonthData(date);
+            return aggregatedData ? [aggregatedData] : [];
+          }
+          return data.filter((item) => item.name === date);
+        })
+      : [];
 
-  // Dynamic chart width: 300% if showing all data, 100% if comparing dates
-  const chartWidth = selectedDates.length > 0 ? "100%" : "300%";
+  const chartWidth = filterType === "all" ? "2000%" : "100%";
 
   return (
     <div>
       <div className="mb-6">
         <h3 className="text-xl font-semibold text-center my-10">Dashboard</h3>
-        <div className="space-x-4 flex w-full justify-center ">
-          {selectedDates.map((date, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-center space-x-4"
+        <div className="space-x-4 flex w-full justify-center flex-col items-center space-y-4">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setFilterType("all")}
+              className={`px-4 py-2 rounded-lg ${
+                filterType === "all"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-300 text-black"
+              }`}
             >
-              <select
-                value={date || ""}
-                onChange={(e) => handleDateChange(index, e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              All
+            </button>
+            <button
+              onClick={() => setFilterType("week")}
+              className={`px-4 py-2 rounded-lg ${
+                filterType === "week"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-300 text-black"
+              }`}
+            >
+              Week
+            </button>
+            <button
+              onClick={() => setFilterType("month")}
+              className={`px-4 py-2 rounded-lg ${
+                filterType === "month"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-300 text-black"
+              }`}
+            >
+              Month
+            </button>
+            <button
+              onClick={() => setFilterType("year")}
+              className={`px-4 py-2 rounded-lg ${
+                filterType === "year"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-300 text-black"
+              }`}
+            >
+              Year
+            </button>
+          </div>
+          {filterType !== "all" &&
+            selectedDates.map((date, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-center space-x-4" // Ensure this div is using flex
               >
-                <option value="">Select Month-Year</option>
-                {generateDateOptions().map((option) => (
-                  <option key={option} value={option}>
-                    {option}
+                <select
+                  value={date || ""}
+                  onChange={(e) => handleDateChange(index, e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">
+                    Select
+                    {filterType === "year"
+                      ? "Year"
+                      : filterType === "month"
+                      ? "Month-Year"
+                      : "Week"}
                   </option>
-                ))}
-              </select>
-              <button
-                onClick={() => clearDateSelection(index)}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                Delete
-              </button>
-            </div>
-          ))}
+                  {generateDateOptions().map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => clearDateSelection(index)}
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
         </div>
 
-        {selectedDates.length < 5 && (
+        {filterType !== "all" && selectedDates.length < 5 && (
           <div className="flex justify-center items-center flex-col mt-4">
             <button
               onClick={() => {

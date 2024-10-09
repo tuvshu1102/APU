@@ -12,7 +12,7 @@ export default function Home({ session }) {
     <div className="w-screen h-screen bg-black flex text-black">
       <Sidebar />
       <h1 className="w-[90%] h-full bg-slate-100">
-        <Pse />
+        <Chart />
       </h1>
     </div>
   );
