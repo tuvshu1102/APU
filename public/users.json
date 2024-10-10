@@ -48,12 +48,6 @@
     "email": "hannah@example.com"
   },
   {
-    "id": 9,
-    "name": "Ian Blue",
-    "password": "123",
-    "email": "ian@example.com"
-  },
-  {
     "id": 10,
     "name": "Jack Red",
     "password": "123",
@@ -102,36 +96,6 @@
     "email": "quinn@example.com"
   },
   {
-    "id": 18,
-    "name": "Ian Blue",
-    "password": "123",
-    "email": "ian@example.com"
-  },
-  {
-    "id": 19,
-    "name": "Jack Red",
-    "password": "123",
-    "email": "jack@example.com"
-  },
-  {
-    "id": 20,
-    "name": "Kate Silver",
-    "password": "123",
-    "email": "kate@example.com"
-  },
-  {
-    "id": 21,
-    "name": "Liam Purple",
-    "password": "123",
-    "email": "liam@example.com"
-  },
-  {
-    "id": 22,
-    "name": "Mia Brown",
-    "password": "123",
-    "email": "mia@example.com"
-  },
-  {
     "id": 23,
     "name": "Noah Orange",
     "password": "123",
@@ -154,5 +118,17 @@
     "name": "Quinn Gray",
     "password": "123",
     "email": "quinn@example.com"
+  },
+  {
+    "id": 18,
+    "name": "hah",
+    "email": "hah",
+    "password": "hah"
+  },
+  {
+    "id": 9,
+    "name": "q",
+    "email": "q",
+    "password": "q"
   }
 ]

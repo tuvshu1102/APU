@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { FaFilter } from "react-icons/fa";
 import {
   BarChart,
   Bar,
@@ -24,8 +25,8 @@ export default function Example() {
   });
   const [filterType, setFilterType] = useState("all");
   const [currentPage, setCurrentPage] = useState(0);
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
 
-  // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       const res = await fetch("/data.json");
@@ -35,18 +36,16 @@ export default function Example() {
     fetchData();
   }, []);
 
-  // Reset selected dates and current page when filter changes
   useEffect(() => {
     if (filterType !== "all") {
       setSelectedDates([]);
       setCurrentPage(0);
     } else {
       const totalChunks = Math.ceil(data.length / CHUNK_SIZE);
-      setCurrentPage(Math.max(totalChunks - 1, 0)); // Set to last page when filter is 'all'
+      setCurrentPage(Math.max(totalChunks - 1, 0));
     }
   }, [filterType, data]);
 
-  // Handle date selection change
   const handleDateChange = (index, value) => {
     const newSelectedDates = [...selectedDates];
     newSelectedDates[index] = value;
@@ -59,7 +58,6 @@ export default function Example() {
     setSelectedDates(newSelectedDates);
   };
 
-  // Generate date options
   const generateDateOptions = () => {
     const options = [];
     const startYear = 2017;
@@ -81,7 +79,6 @@ export default function Example() {
     return options;
   };
 
-  // Aggregating data by month or year
   const aggregateMonthData = (month) => {
     const monthData = data.filter((item) => item.name.startsWith(month));
     if (monthData.length === 0) return null;
@@ -116,10 +113,9 @@ export default function Example() {
     );
   };
 
-  // Filter data based on selected dates or show all
   const filteredData = useMemo(() => {
     if (filterType === "all") {
-      return data; // Return all data for 'all' filter
+      return data;
     } else if (selectedDates.length) {
       return selectedDates.flatMap((date) => {
         if (date && date.length === 4) {
@@ -135,157 +131,168 @@ export default function Example() {
     return [];
   }, [selectedDates, data, filterType]);
 
-  // Toggle visibility of data keys (uv, pv, etc.)
   const toggleDataKey = (key) => {
     setDataKeys((prevKeys) => ({ ...prevKeys, [key]: !prevKeys[key] }));
   };
 
-  // Handle previous and next button click
   const handlePrev = () => setCurrentPage((prev) => Math.max(prev - 1, 0));
   const handleNext = () =>
     setCurrentPage((prev) =>
       Math.min(prev + 1, Math.ceil(filteredData.length / CHUNK_SIZE) - 1)
     );
 
-  // Set the chart width with a maximum of 200%
-  const maxWidthPercentage = 100; // maximum width in percentage
   const chunkCount = Math.ceil(filteredData.length / CHUNK_SIZE);
-  const chartWidth =
-    filterType === "all"
-      ? `${Math.min(chunkCount * 100, maxWidthPercentage)}%`
-      : "100%";
-
   const currentDataChunk = filteredData.slice(
     currentPage * CHUNK_SIZE,
     (currentPage + 1) * CHUNK_SIZE
   );
 
   return (
-    <div className="w-full mx-auto px-4">
-      <h3 className="text-2xl font-semibold text-center my-10">Dashboard</h3>
-
-      {/* Filter buttons */}
-      <div className="flex justify-center space-x-4 mb-6">
-        {["all", "month", "year"].map((type) => (
+    <div className="w-full mx-auto bg-[#1a1a1a] h-full">
+      <h3 className="text-xl font-medium text-center text-gray-300 h-[10vh] flex items-center justify-center">
+        Data Management Dashboard
+      </h3>
+      <div className="flex items-start justify-center w-full h-[90vh]">
+        <div className="flex flex-col w-[10%] h-full items-center">
           <button
-            key={type}
-            onClick={() => setFilterType(type)}
-            className={`px-4 py-2 rounded-lg transition duration-200 ${
-              filterType === type
-                ? "bg-blue-600 text-white shadow-lg"
-                : "bg-gray-200 text-black hover:bg-gray-300"
-            }`}
+            onClick={() => setIsFilterVisible(!isFilterVisible)}
+            className="flex items-center bg-gray-800 text-gray-300 px-3 py-2 rounded-md transition hover:bg-gray-700"
           >
-            {type.charAt(0).toUpperCase() + type.slice(1)}
+            <FaFilter className="mr-2" /> Filter
           </button>
-        ))}
-      </div>
-
-      {/* Date selectors */}
-      {filterType !== "all" &&
-        selectedDates.map((date, index) => (
-          <div key={index} className="flex items-center justify-center mb-4">
-            <select
-              value={date || ""}
-              onChange={(e) => handleDateChange(index, e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-gray-700"
-            >
-              <option value="">
-                Select {filterType === "year" ? "Year" : "Month-Year"}
-              </option>
-              {generateDateOptions().map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => clearDateSelection(index)}
-              className="bg-red-500 text-white px-4 py-2 rounded-lg ml-2 hover:bg-red-600 transition duration-200"
-            >
-              Clear
-            </button>
-          </div>
-        ))}
-
-      {filterType !== "all" && selectedDates.length < 5 && (
-        <div className="flex justify-center mb-4">
-          <button
-            onClick={() => setSelectedDates([...selectedDates, null])}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200"
-          >
-            Add Date Picker
-          </button>
-        </div>
-      )}
-
-      <div className="flex mb-4 justify-center space-x-4">
-        {[
-          { key: "uv", label: "UV" },
-          { key: "pv", label: "PV" },
-          { key: "amt", label: "AMT" },
-          { key: "jt", label: "JT" },
-          { key: "jb", label: "JB" },
-        ].map((item) => (
-          <label
-            key={item.key}
-            className={`cursor-pointer flex items-center bg-gray-200 rounded-lg px-4 py-2 transition duration-200 hover:bg-gray-300 ${
-              dataKeys[item.key] ? "bg-blue-600 text-black" : "text-gray-700"
-            }`}
-          >
-            <input
-              type="checkbox"
-              checked={dataKeys[item.key]}
-              onChange={() =>
-                setDataKeys({ ...dataKeys, [item.key]: !dataKeys[item.key] })
-              }
-              className="mr-2 h-4 w-4 accent-blue-600"
-            />
-            {item.label}
-          </label>
-        ))}
-      </div>
-
-      <div className="overflow-x-auto mb-10">
-        <div style={{ width: chartWidth }}>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart
-              data={currentDataChunk}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              {dataKeys.uv && <Bar dataKey="uv" fill="#8884d8" barSize={10} />}
-              {dataKeys.pv && <Bar dataKey="pv" fill="#82ca9d" barSize={10} />}
-              {dataKeys.amt && (
-                <Bar dataKey="amt" fill="#ffc658" barSize={10} />
+          {isFilterVisible && (
+            <div className="mt-4 space-y-4 bg-gray-900 p-3 rounded-md shadow-md w-full">
+              <div className="flex flex-col items-center space-y-2">
+                {["all", "month", "year"].map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setFilterType(type)}
+                    className={`px-3 py-2 rounded-md transition duration-200 w-full text-center ${
+                      filterType === type
+                        ? "bg-gray-700 text-gray-100 shadow"
+                        : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                    }`}
+                  >
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </button>
+                ))}
+              </div>
+              {filterType !== "all" &&
+                selectedDates.map((date, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-center w-full"
+                  >
+                    <select
+                      value={date || ""}
+                      onChange={(e) => handleDateChange(index, e.target.value)}
+                      className="border border-gray-700 bg-gray-800 text-gray-300 rounded-md px-2 py-1 focus:border-gray-500 focus:ring focus:ring-gray-500 transition duration-200 w-full"
+                    >
+                      <option value="" className="text-gray-500">
+                        Select {filterType === "year" ? "Year" : "Month-Year"}
+                      </option>
+                      {generateDateOptions().map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => clearDateSelection(index)}
+                      className="bg-red-500 text-white px-2 py-1 rounded-md ml-2 hover:bg-red-600 transition duration-200"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ))}
+              {filterType !== "all" && selectedDates.length < 5 && (
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => setSelectedDates([...selectedDates, null])}
+                    className="bg-gray-800 text-gray-100 px-3 py-2 rounded-md hover:bg-gray-700 transition duration-200 w-full"
+                  >
+                    Add Date Picker
+                  </button>
+                </div>
               )}
-              {dataKeys.jt && <Bar dataKey="jt" fill="#ff7f0e" barSize={10} />}
-              {dataKeys.jb && <Bar dataKey="jb" fill="#d62728" barSize={10} />}
+              <div className="flex flex-col items-center space-y-2 w-full">
+                {[
+                  { key: "uv", label: "UV" },
+                  { key: "pv", label: "PV" },
+                  { key: "amt", label: "AMT" },
+                  { key: "jt", label: "JT" },
+                  { key: "jb", label: "JB" },
+                ].map((item) => (
+                  <label
+                    key={item.key}
+                    className={`cursor-pointer flex items-center bg-gray-800 rounded-md px-3 py-1 transition hover:bg-gray-700 w-full ${
+                      dataKeys[item.key]
+                        ? "text-gray-100"
+                        : "text-gray-400 line-through"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={dataKeys[item.key]}
+                      onChange={() => toggleDataKey(item.key)}
+                      className="mr-2"
+                    />
+                    {item.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex-grow flex flex-col items-center w-[90%] h-full">
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={currentDataChunk}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+              <XAxis dataKey="name" stroke="#ccc" />
+              <YAxis stroke="#ccc" />
+              <Tooltip
+                contentStyle={{ backgroundColor: "#333", borderColor: "#555" }}
+                cursor={{ fill: "rgba(255, 255, 255, 0.1)" }}
+              />
+              <Legend
+                wrapperStyle={{ color: "#ccc" }}
+                onClick={(e) => toggleDataKey(e.dataKey)}
+              />
+              {dataKeys.uv && (
+                <Bar dataKey="uv" fill="rgba(173, 216, 230, 0.7)" />
+              )}
+              {dataKeys.pv && (
+                <Bar dataKey="pv" fill="rgba(144, 238, 144, 0.7)" />
+              )}
+              {dataKeys.amt && (
+                <Bar dataKey="amt" fill="rgba(255, 165, 0, 0.7)" />
+              )}
+              {dataKeys.jt && (
+                <Bar dataKey="jt" fill="rgba(255, 99, 71, 0.7)" />
+              )}
+              {dataKeys.jb && <Bar dataKey="jb" fill="rgba(75, 0, 130, 0.7)" />}
             </BarChart>
           </ResponsiveContainer>
+          <div className="mt-4 flex justify-between">
+            <button
+              onClick={handlePrev}
+              disabled={currentPage === 0}
+              className="bg-gray-700 text-gray-100 px-3 py-2 rounded-md transition hover:bg-gray-600 disabled:bg-gray-500"
+            >
+              Previous
+            </button>
+            <span className="text-gray-300 mx-5">
+              Page {currentPage + 1} of {chunkCount}
+            </span>
+            <button
+              onClick={handleNext}
+              disabled={currentPage === chunkCount - 1}
+              className="bg-gray-700 text-gray-100 px-3 py-2 rounded-md transition hover:bg-gray-600 disabled:bg-gray-500"
+            >
+              Next
+            </button>
+          </div>
         </div>
-      </div>
-
-      {/* Navigation buttons */}
-      <div className="flex justify-between mb-10">
-        <button
-          onClick={handlePrev}
-          disabled={currentPage === 0}
-          className="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500 transition duration-200 disabled:opacity-50"
-        >
-          Previous
-        </button>
-        <button
-          onClick={handleNext}
-          disabled={currentPage >= chunkCount - 1}
-          className="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500 transition duration-200 disabled:opacity-50"
-        >
-          Next
-        </button>
       </div>
     </div>
   );

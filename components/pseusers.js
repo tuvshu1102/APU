@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import UsersData from "/public/users.json";
 import { FaEdit, FaTrash, FaEye, FaEyeSlash } from "react-icons/fa";
+import { v4 as uuidv4 } from "uuid"; // Import uuid
 
 const UserTable = () => {
   const [users, setUsers] = useState([]);
@@ -45,11 +46,25 @@ const UserTable = () => {
     setEditUserPassword("");
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     const updatedUsers = users.filter((user) => user.id !== id);
     setUsers(updatedUsers);
 
-    // Optionally, save updated users back to JSON or your database here
+    try {
+      const res = await fetch(`/api/deleteUser`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!res.ok) {
+        console.error("Failed to delete user from server.");
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+    }
   };
 
   const togglePasswordVisibility = (id) => {
@@ -69,15 +84,28 @@ const UserTable = () => {
     setNewUserEmail("");
     setNewUserPassword("");
   };
-
-  const handleCreateUser = async () => {
+  const getNextId = (users) => {
     const existingIds = users.map((user) => user.id);
-    let newUserId = 1;
+    let nextId = 1;
 
-    while (existingIds.includes(newUserId)) {
-      newUserId++;
+    while (existingIds.includes(nextId)) {
+      nextId++;
     }
 
+    return nextId;
+  };
+  const sortUsers = (users) => {
+    return [...users].sort((a, b) => {
+      if (sortOrder === "asc") {
+        return a.id - b.id; // Sort ascending by ID
+      } else {
+        return b.id - a.id; // Sort descending by ID
+      }
+    });
+  };
+
+  const handleCreateUser = async () => {
+    const newUserId = getNextId(users); // Get the next available ID
     const newUser = {
       id: newUserId,
       name: newUserName,
@@ -113,16 +141,6 @@ const UserTable = () => {
       user.id.toString().includes(searchQuery)
     );
   });
-
-  const sortUsers = (users) => {
-    return [...users].sort((a, b) => {
-      if (sortOrder === "asc") {
-        return a.id - b.id; // Sort ascending by ID
-      } else {
-        return b.id - a.id; // Sort descending by ID
-      }
-    });
-  };
 
   const displayedUsers = sortUsers(filteredUsers);
 
@@ -262,49 +280,41 @@ const UserTable = () => {
           </tbody>
         </table>
       </div>
-
-      {/* Modal for Creating New User */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg p-6 w-1/3">
-            <h3 className="text-lg font-semibold mb-4">Create New User</h3>
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Name"
-                value={newUserName}
-                onChange={(e) => setNewUserName(e.target.value)}
-                className="border rounded px-3 py-2 shadow-md w-full"
-              />
-            </div>
-            <div className="mb-4">
-              <input
-                type="email"
-                placeholder="Email"
-                value={newUserEmail}
-                onChange={(e) => setNewUserEmail(e.target.value)}
-                className="border rounded px-3 py-2 shadow-md w-full"
-              />
-            </div>
-            <div className="mb-4">
-              <input
-                type="password"
-                placeholder="Password"
-                value={newUserPassword}
-                onChange={(e) => setNewUserPassword(e.target.value)}
-                className="border rounded px-3 py-2 shadow-md w-full"
-              />
-            </div>
-            <div className="flex justify-end">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-8 rounded shadow-lg max-w-sm w-full">
+            <h2 className="text-xl font-semibold mb-4">Create New User</h2>
+            <input
+              type="text"
+              placeholder="Name"
+              value={newUserName}
+              onChange={(e) => setNewUserName(e.target.value)}
+              className="border rounded px-3 py-2 mb-4 w-full"
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              value={newUserEmail}
+              onChange={(e) => setNewUserEmail(e.target.value)}
+              className="border rounded px-3 py-2 mb-4 w-full"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={newUserPassword}
+              onChange={(e) => setNewUserPassword(e.target.value)}
+              className="border rounded px-3 py-2 mb-4 w-full"
+            />
+            <div className="flex justify-between">
               <button
                 onClick={handleCreateUser}
-                className="bg-green-500 text-white px-4 py-2 rounded mr-2"
+                className="bg-green-500 text-white px-4 py-2 rounded"
               >
                 Create
               </button>
               <button
                 onClick={closeModal}
-                className="bg-red-500 text-white px-4 py-2 rounded"
+                className="bg-gray-500 text-white px-4 py-2 rounded"
               >
                 Cancel
               </button>
@@ -315,5 +325,16 @@ const UserTable = () => {
     </div>
   );
 };
+
+export async function getServerSideProps() {
+  const filePath = path.join(process.cwd(), "public", "users.json");
+  const usersData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+
+  return {
+    props: {
+      initialUsers: usersData,
+    },
+  };
+}
 
 export default UserTable;
